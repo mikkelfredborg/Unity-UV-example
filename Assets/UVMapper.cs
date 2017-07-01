@@ -56,8 +56,6 @@ public static class UVMapper
 		Vector3[] verts = mesh.vertices;
 		Vector3[] normals = mesh.normals;
 
-		int[] tris = mesh.triangles;
-
 		Vector3[] worldVerts = new Vector3[ verts.Length ];
 		for (int i = 0; i < worldVerts.Length; i++)
 		{
@@ -68,7 +66,7 @@ public static class UVMapper
 		List<Vector3> newVerts = new List<Vector3>( verts.Length );
 		List<Vector3> newNormals = new List<Vector3>( verts.Length );
 		List<Vector2> newUVs = new List<Vector2>( verts.Length );
-		List<int> newTris = new List<int>( tris.Length );
+		List<List<int>> newTris = new List<List<int>>();
 
 		// Prepare a map to vertices to box directions
 		Dictionary<int,int[]> vertexMap = new Dictionary<int, int[]>();
@@ -86,36 +84,42 @@ public static class UVMapper
 		}
 			
 		// Compute triangle normal for each tri, and rebuild it with unique verts
-		for (int t = 0; t < tris.Length; t += 3)
+		for (int s = 0; s < mesh.subMeshCount; s++)
 		{
-			int v0 = tris[t];
-			int v1 = tris[t+1];
-			int v2 = tris[t+2];
+			int[] tris = mesh.GetTriangles( s );
+			newTris.Add( new List<int>() );
 
-			Vector3 triNormal = TriangleNormal( worldVerts[ v0 ], worldVerts[ v1 ], worldVerts[ v2 ] );
-
-			int boxDir = GetBoxDir( triNormal );
-
-			// Remap triangle verts
-			for (int i = 0; i < 3; i++)
+			for (int t = 0; t < tris.Length; t += 3)
 			{
-				int v = tris[t+i];
+				int v0 = tris[t];
+				int v1 = tris[t+1];
+				int v2 = tris[t+2];
 
-				// If vertex doesn't already exist in boxDir vertex map,
-				// we'll add a copy of it with the correct UV
-				if (vertexMap[boxDir][v] < 0)
+				Vector3 triNormal = TriangleNormal( worldVerts[ v0 ], worldVerts[ v1 ], worldVerts[ v2 ] );
+
+				int boxDir = GetBoxDir( triNormal );
+
+				// Remap triangle verts
+				for (int i = 0; i < 3; i++)
 				{
-					// Compute UV
-					Vector2 vertexUV = GetBoxUV( matrix.MultiplyPoint( verts[v] ), boxDir );
+					int v = tris[t+i];
 
-					vertexMap[boxDir][v] = newVerts.Count;
-					newVerts.Add( verts[v] );
-					newNormals.Add( normals[v] );
-					newUVs.Add( vertexUV );
+					// If vertex doesn't already exist in boxDir vertex map,
+					// we'll add a copy of it with the correct UV
+					if (vertexMap[boxDir][v] < 0)
+					{
+						// Compute UV
+						Vector2 vertexUV = GetBoxUV( worldVerts[v], boxDir );
+
+						vertexMap[boxDir][v] = newVerts.Count;
+						newVerts.Add( verts[v] );
+						newNormals.Add( normals[v] );
+						newUVs.Add( vertexUV );
+					}
+
+					// Use remapped vertex index
+					newTris[s].Add( vertexMap[boxDir][v] );
 				}
-
-				// Use remapped vertex index
-				newTris.Add( vertexMap[boxDir][v] );
 			}
 		}
 			
@@ -125,7 +129,10 @@ public static class UVMapper
 
 		// TODO: Recalculate tangents
 
-		mesh.triangles = newTris.ToArray();
+		for (int s = 0; s < newTris.Count; s++)
+		{
+			mesh.SetTriangles( newTris[s].ToArray(), s );
+		}
 	}
 
 }
