@@ -58,6 +58,12 @@ public static class UVMapper
 
 		int[] tris = mesh.triangles;
 
+		Vector3[] worldVerts = new Vector3[ verts.Length ];
+		for (int i = 0; i < worldVerts.Length; i++)
+		{
+			worldVerts[i] = matrix.MultiplyPoint( verts[i] );
+		}
+
 		// Lists for new mesh..
 		List<Vector3> newVerts = new List<Vector3>( verts.Length );
 		List<Vector3> newNormals = new List<Vector3>( verts.Length );
@@ -86,8 +92,7 @@ public static class UVMapper
 			int v1 = tris[t+1];
 			int v2 = tris[t+2];
 
-			Vector3 triNormal = TriangleNormal( verts[ v0 ], verts[ v1 ], verts[ v2 ] );
-			triNormal = matrix.MultiplyVector( triNormal );
+			Vector3 triNormal = TriangleNormal( worldVerts[ v0 ], worldVerts[ v1 ], worldVerts[ v2 ] );
 
 			int boxDir = GetBoxDir( triNormal );
 
