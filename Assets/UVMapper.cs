@@ -49,6 +49,9 @@ public static class UVMapper
 	// and map to them.
 	public static void BoxUV( Mesh mesh, Transform tform )
 	{
+		// Matrix 
+		Matrix4x4 matrix = tform.localToWorldMatrix;
+
 		// TODO: transfer vertex colors, etc.
 		Vector3[] verts = mesh.vertices;
 		Vector3[] normals = mesh.normals;
@@ -84,7 +87,7 @@ public static class UVMapper
 			int v2 = tris[t+2];
 
 			Vector3 triNormal = TriangleNormal( verts[ v0 ], verts[ v1 ], verts[ v2 ] );
-			triNormal = tform.TransformPoint( triNormal );
+			triNormal = matrix.MultiplyVector( triNormal );
 
 			int boxDir = GetBoxDir( triNormal );
 
@@ -98,7 +101,7 @@ public static class UVMapper
 				if (vertexMap[boxDir][v] < 0)
 				{
 					// Compute UV
-					Vector2 vertexUV = GetBoxUV( tform.TransformPoint( verts[v] ), boxDir );
+					Vector2 vertexUV = GetBoxUV( matrix.MultiplyPoint( verts[v] ), boxDir );
 
 					vertexMap[boxDir][v] = newVerts.Count;
 					newVerts.Add( verts[v] );
